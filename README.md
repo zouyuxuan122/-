@@ -160,8 +160,5 @@
 
 若使用过程中遇到问题或有功能建议，可通过以下方式联系技术支持：
 
-- 官方邮箱：support@filesplitter-crawler.com
+- 官方邮箱：zouyuxuan122@qq.com
 
-- 客服热线：400-123-4567（工作日9:00-18:00）
-
-- 官方论坛：https://bbs.filesplitter-crawler.com（可查看常见问题解答、用户交流及版本更新信息）
