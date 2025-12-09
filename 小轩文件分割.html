@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小轩文件助手 - 文件分割工具</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#60A5FA',
+                        accent: '#93C5FD',
+                        dark: '#1E40AF',
+                        light: '#EFF6FF'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'custom': '0 4px 20px 0 rgba(59, 130, 246, 0.15)'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .gradient-bg {
+                background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+            }
+            .glass-effect {
+                background: rgba(255, 255, 255, 0.8);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+            .file-drop-active {
+                border-color: #3B82F6;
+                background-color: rgba(59, 130, 246, 0.05);
+            }
+            .progress-bar {
+                transition: width 0.3s ease-in-out;
+            }
+            .btn-hover:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+            }
+            .file-item-enter {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            .file-item-enter-active {
+                opacity: 1;
+                transform: translateY(0);
+                transition: opacity 0.3s, transform 0.3s;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <!-- 背景图 -->
+    <div class="fixed inset-0 z-0 opacity-10 pointer-events-none">
+        <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/dc7ae4a2bd2c481ba21e22a4b0b01472~tplv-a9rns2rl98-image.image?rcl=20251206231058B0939E8CC36B3BA6BC1D&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767625877&x-signature=uRbH90dccygJYhEWgNw2H9jMpo8%3D" 
+             alt="背景" class="w-full h-full object-cover">
+    </div>
+
+    <div class="relative z-10 container mx-auto px-4 py-8 max-w-4xl">
+        <!-- 头部 -->
+        <header class="text-center mb-10">
+            <div class="flex justify-center items-center mb-4">
+                <img src="https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/edf79fb16c9843f8856834cb7931c4f7~tplv-a9rns2rl98-image.image?rcl=20251206231058B0939E8CC36B3BA6BC1D&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767625871&x-signature=TGEdDXON4%2B0adWUsLeQ0QAkMnDY%3D" 
+                     alt="小轩文件助手" class="w-16 h-16 mr-3">
+                <h1 class="text-3xl font-bold text-gray-800">小轩文件助手</h1>
+            </div>
+            <p class="text-gray-600 max-w-lg mx-auto">简单高效的文件分割工具，帮助您轻松处理大文件，便于传输和存储。</p>
+        </header>
+
+        <!-- 主要内容 -->
+        <main>
+            <!-- 文件上传区域 -->
+            <section class="bg-white rounded-xl shadow-custom p-6 mb-8">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">选择文件</h2>
+                
+                <div id="fileDropArea" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer transition-all duration-300 hover:border-primary">
+                    <input type="file" id="fileInput" class="hidden">
+                    <i class="fa fa-cloud-upload text-4xl text-primary mb-4"></i>
+                    <p class="text-gray-600 mb-2">点击或拖拽文件到此处</p>
+                    <p class="text-gray-400 text-sm">支持所有文件类型，无大小限制</p>
+                </div>
+                
+                <div id="fileInfo" class="mt-4 hidden">
+                    <div class="flex items-center justify-between bg-light rounded-lg p-3">
+                        <div class="flex items-center">
+                            <i class="fa fa-file-o text-primary mr-3 text-xl"></i>
+                            <div>
+                                <p id="fileName" class="font-medium text-gray-800 truncate max-w-xs"></p>
+                                <p id="fileSize" class="text-sm text-gray-500"></p>
+                            </div>
+                        </div>
+                        <button id="removeFile" class="text-red-500 hover:text-red-700 transition-colors">
+                            <i class="fa fa-times-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 分割设置 -->
+            <section id="splitSettings" class="bg-white rounded-xl shadow-custom p-6 mb-8 hidden">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">分割设置</h2>
+                
+                <div class="mb-6">
+                    <label class="block text-gray-700 mb-2 font-medium">分割方式</label>
+                    <div class="flex space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="splitMethod" value="size" class="form-radio text-primary" checked>
+                            <span class="ml-2">按大小分割</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="splitMethod" value="count" class="form-radio text-primary">
+                            <span class="ml-2">按数量分割</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div id="sizeSettings">
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-1">
+                            <label class="block text-gray-700 mb-2 font-medium">每个文件大小</label>
+                            <div class="flex">
+                                <input type="number" id="chunkSize" min="1" value="10" class="form-input border-gray-300 rounded-l-md w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <select id="sizeUnit" class="form-select border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                                    <option value="MB">MB</option>
+                                    <option value="KB">KB</option>
+                                    <option value="GB">GB</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="countSettings" class="hidden">
+                    <label class="block text-gray-700 mb-2 font-medium">分割数量</label>
+                    <input type="number" id="chunkCount" min="2" value="5" class="form-input border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                
+                <button id="splitButton" class="mt-6 w-full bg-primary hover:bg-dark text-white font-medium py-3 px-4 rounded-md transition-all duration-300 btn-hover">
+                    <i class="fa fa-scissors mr-2"></i>开始分割
+                </button>
+            </section>
+
+            <!-- 分割进度 -->
+            <section id="splitProgress" class="bg-white rounded-xl shadow-custom p-6 mb-8 hidden">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">分割进度</h2>
+                
+                <div class="mb-4">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>处理中...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div id="progressBar" class="bg-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <p id="progressStatus" class="text-gray-600 text-sm">准备中...</p>
+            </section>
+
+            <!-- 分割结果 -->
+            <section id="splitResults" class="bg-white rounded-xl shadow-custom p-6 mb-8 hidden">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">分割结果</h2>
+                
+                <div id="resultFiles" class="space-y-3 mb-6">
+                    <!-- 分割后的文件列表将在这里动态生成 -->
+                </div>
+                
+                <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+                    <button id="downloadAllButton" class="flex-1 bg-primary hover:bg-dark text-white font-medium py-2 px-4 rounded-md transition-all duration-300 btn-hover">
+                        <i class="fa fa-download mr-2"></i>下载全部
+                    </button>
+                    <button id="newSplitButton" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md transition-all duration-300">
+                        <i class="fa fa-plus mr-2"></i>新的分割
+                    </button>
+                </div>
+            </section>
+
+            <!-- 文件合并指南 -->
+            <section id="mergeGuide" class="bg-white rounded-xl shadow-custom p-6 mb-8 hidden">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">文件合并指南</h2>
+                
+                <div class="bg-light rounded-lg p-4">
+                    <p class="text-gray-700 mb-3">要合并分割后的文件，请根据您的操作系统使用以下方法：</p>
+                    
+                    <div class="mb-4">
+                        <h3 class="font-medium text-gray-800 mb-2">Windows 命令提示符：</h3>
+                        <div class="bg-gray-800 text-gray-100 p-3 rounded-md overflow-x-auto">
+                            <code>copy /b 文件名.part1 + 文件名.part2 + ... + 文件名.partN 合并后的文件名</code>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h3 class="font-medium text-gray-800 mb-2">macOS/Linux 终端：</h3>
+                        <div class="bg-gray-800 text-gray-100 p-3 rounded-md overflow-x-auto">
+                            <code>cat 文件名.part1 文件名.part2 ... 文件名.partN > 合并后的文件名</code>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-medium text-gray-800 mb-2">示例：</h3>
+                        <div class="bg-gray-800 text-gray-100 p-3 rounded-md overflow-x-auto">
+                            <code id="mergeExample">copy /b document.pdf.001 + document.pdf.002 + document.pdf.003 document.pdf</code>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 底部 -->
+        <footer class="text-center text-gray-500 text-sm mt-12">
+            <p>© 2025 小轩文件助手 - 简单高效的文件分割工具</p>
+        </footer>
+    </div>
+
+    <!-- 通知提示 -->
+    <div id="notification" class="fixed bottom-4 right-4 bg-white shadow-lg rounded-lg p-4 max-w-xs transform translate-y-full opacity-0 transition-all duration-300 z-50">
+        <div class="flex items-start">
+            <div id="notificationIcon" class="flex-shrink-0 text-green-500 mr-3">
+                <i class="fa fa-check-circle text-xl"></i>
+            </div>
+            <div class="flex-1">
+                <h3 id="notificationTitle" class="font-medium text-gray-800"></h3>
+                <p id="notificationMessage" class="text-sm text-gray-600 mt-1"></p>
+            </div>
+            <button id="closeNotification" class="text-gray-400 hover:text-gray-600">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 元素引用
+            const fileDropArea = document.getElementById('fileDropArea');
+            const fileInput = document.getElementById('fileInput');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const removeFile = document.getElementById('removeFile');
+            const splitSettings = document.getElementById('splitSettings');
+            const sizeSettings = document.getElementById('sizeSettings');
+            const countSettings = document.getElementById('countSettings');
+            const splitMethodRadios = document.querySelectorAll('input[name="splitMethod"]');
+            const splitButton = document.getElementById('splitButton');
+            const splitProgress = document.getElementById('splitProgress');
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressStatus = document.getElementById('progressStatus');
+            const splitResults = document.getElementById('splitResults');
+            const resultFiles = document.getElementById('resultFiles');
+            const downloadAllButton = document.getElementById('downloadAllButton');
+            const newSplitButton = document.getElementById('newSplitButton');
+            const mergeGuide = document.getElementById('mergeGuide');
+            const mergeExample = document.getElementById('mergeExample');
+            const notification = document.getElementById('notification');
+            const notificationIcon = document.getElementById('notificationIcon');
+            const notificationTitle = document.getElementById('notificationTitle');
+            const notificationMessage = document.getElementById('notificationMessage');
+            const closeNotification = document.getElementById('closeNotification');
+
+            // 全局变量
+            let selectedFile = null;
+            let splitFiles = [];
+
+            // 文件拖放区域事件
+            fileDropArea.addEventListener('click', () => fileInput.click());
+            
+            fileDropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                fileDropArea.classList.add('file-drop-active');
+            });
+            
+            fileDropArea.addEventListener('dragleave', () => {
+                fileDropArea.classList.remove('file-drop-active');
+            });
+            
+            fileDropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                fileDropArea.classList.remove('file-drop-active');
+                
+                if (e.dataTransfer.files.length) {
+                    handleFileSelect(e.dataTransfer.files[0]);
+                }
+            });
+            
+            // 文件输入事件
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length) {
+                    handleFileSelect(fileInput.files[0]);
+                }
+            });
+            
+            // 处理文件选择
+            function handleFileSelect(file) {
+                selectedFile = file;
+                fileName.textContent = file.name;
+                fileSize.textContent = formatFileSize(file.size);
+                fileInfo.classList.remove('hidden');
+                splitSettings.classList.remove('hidden');
+                scrollToElement(splitSettings);
+            }
+            
+            // 移除文件
+            removeFile.addEventListener('click', () => {
+                selectedFile = null;
+                fileInput.value = '';
+                fileInfo.classList.add('hidden');
+                splitSettings.classList.add('hidden');
+                splitProgress.classList.add('hidden');
+                splitResults.classList.add('hidden');
+                mergeGuide.classList.add('hidden');
+                splitFiles = [];
+            });
+            
+            // 分割方式切换
+            splitMethodRadios.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (radio.value === 'size') {
+                        sizeSettings.classList.remove('hidden');
+                        countSettings.classList.add('hidden');
+                    } else {
+                        sizeSettings.classList.add('hidden');
+                        countSettings.classList.remove('hidden');
+                    }
+                });
+            });
+            
+            // 开始分割
+            splitButton.addEventListener('click', () => {
+                if (!selectedFile) return;
+                
+                // 获取分割参数
+                let chunkSize;
+                const splitMethod = document.querySelector('input[name="splitMethod"]:checked').value;
+                
+                if (splitMethod === 'size') {
+                    const sizeValue = parseInt(document.getElementById('chunkSize').value);
+                    const sizeUnit = document.getElementById('sizeUnit').value;
+                    
+                    // 转换为字节
+                    switch (sizeUnit) {
+                        case 'KB':
+                            chunkSize = sizeValue * 1024;
+                            break;
+                        case 'MB':
+                            chunkSize = sizeValue * 1024 * 1024;
+                            break;
+                        case 'GB':
+                            chunkSize = sizeValue * 1024 * 1024 * 1024;
+                            break;
+                        default:
+                            chunkSize = sizeValue * 1024 * 1024; // 默认MB
+                    }
+                } else {
+                    const chunkCount = parseInt(document.getElementById('chunkCount').value);
+                    chunkSize = Math.ceil(selectedFile.size / chunkCount);
+                }
+                
+                // 显示进度条
+                splitProgress.classList.remove('hidden');
+                splitButton.disabled = true;
+                scrollToElement(splitProgress);
+                
+                // 开始分割
+                splitFile(selectedFile, chunkSize);
+            });
+            
+            // 文件分割函数
+            function splitFile(file, chunkSize) {
+                const reader = new FileReader();
+                const totalChunks = Math.ceil(file.size / chunkSize);
+                let currentChunk = 0;
+                splitFiles = [];
+                
+                // 更新进度
+                updateProgress(0, `准备分割文件...`);
+                
+                reader.onload = function(e) {
+                    const fileData = e.target.result;
+                    
+                    // 分割文件
+                    for (let i = 0; i < totalChunks; i++) {
+                        const start = i * chunkSize;
+                        const end = Math.min(start + chunkSize, file.size);
+                        const chunk = fileData.slice(start, end);
+                        
+                        // 创建Blob对象
+                        const blob = new Blob([chunk], { type: file.type });
+                        
+                        // 生成文件名
+                        const extension = file.name.split('.').pop();
+                        const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                        const partNumber = String(i + 1).padStart(String(totalChunks).length, '0');
+                        const chunkFileName = `${baseName}.${partNumber}.${extension}`;
+                        
+                        // 添加到结果数组
+                        splitFiles.push({
+                            name: chunkFileName,
+                            blob: blob,
+                            size: blob.size
+                        });
+                        
+                        // 更新进度
+                        const progress = Math.round(((i + 1) / totalChunks) * 100);
+                        updateProgress(progress, `正在分割文件 (${i + 1}/${totalChunks})...`);
+                    }
+                    
+                    // 分割完成
+                    setTimeout(() => {
+                        updateProgress(100, '文件分割完成！');
+                        showSplitResults();
+                        showMergeGuide();
+                        splitButton.disabled = false;
+                    }, 500);
+                };
+                
+                reader.readAsArrayBuffer(file);
+            }
+            
+            // 更新进度
+            function updateProgress(percent, status) {
+                progressBar.style.width = `${percent}%`;
+                progressPercent.textContent = `${percent}%`;
+                progressStatus.textContent = status;
+            }
+            
+            // 显示分割结果
+            function showSplitResults() {
+                splitResults.classList.remove('hidden');
+                resultFiles.innerHTML = '';
+                
+                splitFiles.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'flex items-center justify-between bg-light rounded-lg p-3 file-item-enter';
+                    fileItem.style.animationDelay = `${index * 0.1}s`;
+                    
+                    fileItem.innerHTML = `
+                        <div class="flex items-center">
+                            <i class="fa fa-file-o text-primary mr-3"></i>
+                            <div>
+                                <p class="font-medium text-gray-800">${file.name}</p>
+                                <p class="text-sm text-gray-500">${formatFileSize(file.size)}</p>
+                            </div>
+                        </div>
+                        <button class="download-file bg-primary hover:bg-dark text-white text-sm py-1 px-3 rounded transition-colors" data-index="${index}">
+                            <i class="fa fa-download mr-1"></i>下载
+                        </button>
+                    `;
+                    
+                    resultFiles.appendChild(fileItem);
+                    
+                    // 添加动画类
+                    setTimeout(() => {
+                        fileItem.classList.add('file-item-enter-active');
+                    }, 10);
+                });
+                
+                // 添加下载事件
+                document.querySelectorAll('.download-file').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const index = parseInt(e.currentTarget.dataset.index);
+                        downloadFile(splitFiles[index]);
+                    });
+                });
+                
+                scrollToElement(splitResults);
+            }
+            
+            // 显示合并指南
+            function showMergeGuide() {
+                mergeGuide.classList.remove('hidden');
+                
+                if (splitFiles.length > 0) {
+                    const firstFile = splitFiles[0].name;
+                    const baseName = firstFile.substring(0, firstFile.lastIndexOf('.'));
+                    const extension = firstFile.split('.').pop();
+                    
+                    // Windows 示例
+                    let windowsExample = 'copy /b ';
+                    for (let i = 0; i < splitFiles.length; i++) {
+                        windowsExample += `${baseName}.${String(i + 1).padStart(String(splitFiles.length).length, '0')}.${extension} `;
+                    }
+                    windowsExample += ` ${baseName}.${extension}`;
+                    
+                    // macOS/Linux 示例
+                    let unixExample = 'cat ';
+                    for (let i = 0; i < splitFiles.length; i++) {
+                        unixExample += `${baseName}.${String(i + 1).padStart(String(splitFiles.length).length, '0')}.${extension} `;
+                    }
+                    unixExample += ` > ${baseName}.${extension}`;
+                    
+                    mergeExample.innerHTML = `Windows: ${windowsExample}<br><br>macOS/Linux: ${unixExample}`;
+                }
+            }
+            
+            // 下载单个文件
+            function downloadFile(file) {
+                const url = URL.createObjectURL(file.blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = file.name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showNotification('下载开始', `正在下载 ${file.name}`);
+            }
+            
+            // 下载所有文件
+            downloadAllButton.addEventListener('click', () => {
+                splitFiles.forEach(file => {
+                    downloadFile(file);
+                });
+                
+                showNotification('批量下载', `已开始下载所有 ${splitFiles.length} 个文件`);
+            });
+            
+            // 新的分割
+            newSplitButton.addEventListener('click', () => {
+                removeFile.click();
+                fileDropArea.scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            // 显示通知
+            function showNotification(title, message, isError = false) {
+                notificationTitle.textContent = title;
+                notificationMessage.textContent = message;
+                
+                if (isError) {
+                    notificationIcon.innerHTML = '<i class="fa fa-exclamation-circle text-red-500 text-xl"></i>';
+                } else {
+                    notificationIcon.innerHTML = '<i class="fa fa-check-circle text-green-500 text-xl"></i>';
+                }
+                
+                notification.classList.remove('translate-y-full', 'opacity-0');
+                
+                // 自动关闭
+                setTimeout(() => {
+                    hideNotification();
+                }, 5000);
+            }
+            
+            // 隐藏通知
+            function hideNotification() {
+                notification.classList.add('translate-y-full', 'opacity-0');
+            }
+            
+            // 关闭通知按钮
+            closeNotification.addEventListener('click', hideNotification);
+            
+            // 滚动到元素
+            function scrollToElement(element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            
+            // 格式化文件大小
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+        });
+    </script>
+</body>
+</html>
